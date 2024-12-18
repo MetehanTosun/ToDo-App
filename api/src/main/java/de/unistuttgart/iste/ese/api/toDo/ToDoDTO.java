@@ -18,16 +18,16 @@ public class ToDoDTO {
     private String title;
     private String description;
     private boolean finished;
-    private List<Assignee> assigneeIds;
+    private List<Assignee> assigneeList;
     private Long createdDate;
     private Long dueDate;
 
-    public ToDoDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeIds, Long createdDate, Long dueDate) {
+    public ToDoDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeList, Long createdDate, Long dueDate) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.finished = finished;
-        this.assigneeIds = assigneeIds;
+        this.assigneeList = assigneeList;
         this.createdDate = createdDate;
         this.dueDate = dueDate;
     }
@@ -64,15 +64,16 @@ public class ToDoDTO {
     }
 
     public void setFinished(boolean finished) {
+
         this.finished = finished;
     }
 
-    public List<Assignee> getAssigneeIds() {
-        return assigneeIds;
+    public List<Assignee> getAssigneeList() {
+        return assigneeList;
     }
 
-    public void setAssigneeIds(List<Assignee> assigneeIds) {
-        this.assigneeIds = assigneeIds;
+    public void setAssigneeList(List<Assignee> assigneeList) {
+        this.assigneeList = assigneeList;
     }
 
     public Long getCreatedDate() {
@@ -90,5 +91,3 @@ public class ToDoDTO {
         this.dueDate = dueDate;
     }
 }
-
-

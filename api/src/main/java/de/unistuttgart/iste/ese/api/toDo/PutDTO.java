@@ -52,6 +52,9 @@ public class PutDTO {
     }
 
     public void setFinished(boolean finished) {
+        if(finished){
+            finishedDate = new Date().getTime();
+        }
         this.finished = finished;
     }
 

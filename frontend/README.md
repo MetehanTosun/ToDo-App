@@ -1,6 +1,6 @@
 # frontend
 
-This is an example project for a single page application frontend with Vue.js v3. The UI is accessible at <http://localhost:5173>.
+This is a Web-Application for organizing Todos and Assignees <http://localhost:5173>.
 
 ## Prerequisites
 

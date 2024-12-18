@@ -15,17 +15,17 @@ public class GetDTO {
     private String title;
     private String description;
     private boolean finished;
-    private List<Assignee> assigneeIdList;
+    private List<Assignee> assigneeList;
     private Long createdDate;
     private Long dueDate;
     private Long finishedDate;
 
-    public GetDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeIdList, Long createdDate, Long dueDate, Long finishedDate) {
+    public GetDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeList, Long createdDate, Long dueDate, Long finishedDate) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.finished = finished;
-        this.assigneeIdList = assigneeIdList;
+        this.assigneeList = assigneeList;
         this.createdDate = createdDate;
         this.dueDate = dueDate;
         this.finishedDate = finishedDate;
@@ -35,7 +35,6 @@ public class GetDTO {
     }
 
     // Get and Set functions
-
 
     public Long getId() {
         return id;
@@ -66,15 +65,18 @@ public class GetDTO {
     }
 
     public void setFinished(boolean finished) {
+        if(finished){
+            finishedDate = new Date().getTime();
+        }
         this.finished = finished;
     }
 
-    public List<Assignee> getAssigneeIdList() {
-        return assigneeIdList;
+    public List<Assignee> getAssigneeList() {
+        return assigneeList;
     }
 
-    public void setAssigneeIdList(List<Assignee> assigneeIdList) {
-        this.assigneeIdList = assigneeIdList;
+    public void setAssigneeList(List<Assignee> assigneeList) {
+        this.assigneeList = assigneeList;
     }
 
     public Long getCreatedDate() {

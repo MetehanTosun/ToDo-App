@@ -11,9 +11,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @ApiVersion1
@@ -25,91 +24,145 @@ public class ToDoController {
     @Autowired
     private AssigneeRepository assigneeRepository;
 
-
+    //Get all todos
     @GetMapping("/todos")
     public List<GetDTO> getToDos() {
         List<ToDo> allToDos = (List<ToDo>) toDoRepository.findAll();
         List<GetDTO> getDTOs = new ArrayList<>();
-        for (ToDo toDos: allToDos){
-            GetDTO getDTO = new GetDTO(toDos.getId(), toDos.getTitle(), toDos.getDescription(),  toDos.isFinished(), toDos.getAssigneeList(), toDos.getCreatedDate().getTime(),toDos.getDueDate().getTime(), null);
+        for (ToDo toDo : allToDos) {
+            GetDTO getDTO = new GetDTO(
+                    toDo.getId(),
+                    toDo.getTitle(),
+                    toDo.getDescription(),
+                    toDo.isFinished(),
+                    toDo.getAssigneeList(),
+                    toDo.getCreatedDate().getTime(),
+                    toDo.getDueDate() != null ? toDo.getDueDate().getTime() : null,
+                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null
+            );
             getDTOs.add(getDTO);
-
         }
         return getDTOs;
     }
-
+    // Get a single todo
     @GetMapping("/todos/{id}")
     public GetDTO getToDo(@PathVariable("id") long id) {
-        ToDo toDo = toDoRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "To do not found"));
-        GetDTO getDTO = new GetDTO(toDo.getId(), toDo.getTitle(), toDo.getDescription(), toDo.isFinished(), toDo.getAssigneeList(), toDo.getCreatedDate().getTime(), toDo.getDueDate().getTime(), null);
-        return getDTO;
+        // Hole das gewünschte ToDo oder wirf eine 404-Fehlerantwort
+        ToDo toDo = toDoRepository.findById(id);
+
+        if (toDo == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, String.format("ToDo with ID %d not found", id));
+        }
+
+        // Debugging-Assignee-Liste
+        System.out.println("AssigneeList size: " + toDo.getAssigneeList().size());
+
+        // Erstelle und gib das GetDTO für dieses ToDo zurück
+        return new GetDTO(
+                toDo.getId(),
+                toDo.getTitle(),
+                toDo.getDescription(),
+                toDo.isFinished(),
+                new ArrayList<>(toDo.getAssigneeList()), // Assignees als konkrete Liste
+                toDo.getCreatedDate().getTime(),
+                toDo.getDueDate() != null ? toDo.getDueDate().getTime() : null,
+                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null
+        );
     }
 
     @PostMapping("/todos")
     @ResponseStatus(HttpStatus.CREATED)
     public ToDoDTO createToDo(@Valid @RequestBody PostDTO requestBody) {
-        List<Long> idList = requestBody.getAssigneeIdList();
+        if (requestBody.getTitle() == null || requestBody.getTitle().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Title cannot be empty");
+        }
+        if (requestBody.getAssigneeIdList() != null) {
+            if (new HashSet<>(requestBody.getAssigneeIdList()).size() < requestBody.getAssigneeIdList().size()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate assignee IDs are not allowed");
+            }
+        }
         List<Assignee> assignees = new ArrayList<>();
-        if (idList != null) {
-            for (Long assigneeId : idList) {
+        if (requestBody.getAssigneeIdList() != null) {
+            for (Long assigneeId : requestBody.getAssigneeIdList()) {
                 Assignee assignee = assigneeRepository.findById(assigneeId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignee not found"));
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignee not found"));
                 assignees.add(assignee);
             }
         }
-        ToDo toDo = new ToDo(requestBody.getTitle(), requestBody.getDescription(), requestBody.isFinished(), assignees, new Date(), new Date(requestBody.getDueDate()), null);
+        Date dueDate = requestBody.getDueDate() != null ? new Date(requestBody.getDueDate()) : null;
+
+        ToDo toDo = new ToDo(
+                requestBody.getTitle(),
+                requestBody.getDescription(),
+                requestBody.isFinished(),
+                assignees,
+                new Date(),
+                dueDate,
+                null
+        );
+
         toDoRepository.save(toDo);
-        ToDoDTO toDoDTO = new ToDoDTO(toDo.getId(), requestBody.getTitle(), requestBody.getDescription(), requestBody.isFinished(), assignees, new Date().getTime(), requestBody.getDueDate());
-        return toDoDTO;
+        return new ToDoDTO(
+                toDo.getId(),
+                requestBody.getTitle(),
+                requestBody.getDescription(),
+                requestBody.isFinished(),
+                assignees,
+                toDo.getCreatedDate().getTime(),
+                dueDate != null ? dueDate.getTime() : null
+        );
     }
 
     @PutMapping("/todos/{id}")
-    public ToDoDTO updateToDo(@PathVariable("id") long id, @Valid @RequestBody PutDTO requestBody) {
-        ToDo existingToDo = toDoRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
+    public GetDTO updateTodo(@PathVariable("id") long id, @Valid @RequestBody PostDTO requestBody) {
+        ToDo existingTodo = toDoRepository.findById(id);
+        if (existingTodo == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo with ID " + id + " not found");
+        }
 
-        // Assignees verarbeiten
-        List<Long> idList = requestBody.getAssigneeIdList();
+        // Validate Assignee IDs
         List<Assignee> assignees = new ArrayList<>();
-        if (idList != null) {
-            for (Long assigneeId : idList) {
-                Assignee assignee = assigneeRepository.findById(assigneeId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignee not found"));
-                assignees.add(assignee);
+        if (requestBody.getAssigneeIdList() != null) {
+            Set<Long> uniqueIds = new HashSet<>();
+            for (Long assigneeId : requestBody.getAssigneeIdList()) {
+                if (!uniqueIds.add(assigneeId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duplicate Assignee ID: " + assigneeId);
+                }
+                Assignee existingAssignee = assigneeRepository.findById(assigneeId).get();
+                assignees.add(existingAssignee);
+
             }
         }
+        // Update fields
+        existingTodo.setTitle(requestBody.getTitle());
+        existingTodo.setDescription(requestBody.getDescription());
+        existingTodo.setAssigneeList(assignees);
 
-        existingToDo.setTitle(requestBody.getTitle());
-        existingToDo.setDescription(requestBody.getDescription());
-        existingToDo.setFinished(requestBody.isFinished());
-        existingToDo.setAssigneeList(assignees);
         if (requestBody.getDueDate() != null) {
-            existingToDo.setDueDate(new Date(requestBody.getDueDate()));
+            Date dueDate = new Date(requestBody.getDueDate());
+            existingTodo.setDueDate(dueDate);
         }
 
-        toDoRepository.save(existingToDo);
-
-        // DTO für die Antwort erstellen
-        ToDoDTO toDoDTO = new ToDoDTO(
-            existingToDo.getId(),
-            existingToDo.getTitle(),
-            existingToDo.getDescription(),
-            existingToDo.isFinished(),
-            existingToDo.getAssigneeList(),
-            existingToDo.getCreatedDate().getTime(),
-            existingToDo.getDueDate() != null ? existingToDo.getDueDate().getTime() : null
-        );
-
-        return toDoDTO;
+        existingTodo.setFinished(requestBody.isFinished());
+        existingTodo.setFinishedDate(requestBody.isFinished() ? new Date() : null);
+        toDoRepository.save(existingTodo);
+        return new GetDTO(existingTodo.getId(), existingTodo.getTitle(), existingTodo.getDescription(), existingTodo.isFinished(),existingTodo.getAssigneeList(),existingTodo.getCreatedDate().getTime(),existingTodo.getDueDate().getTime(),existingTodo.isFinished() ? new Date().getTime(): null);
     }
 
     @DeleteMapping("/todos/{id}")
+    @ResponseStatus(HttpStatus.OK)
     public void deleteToDo(@PathVariable("id") long id) {
-
-        ToDo toDoToDelete = toDoRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
+        ToDo toDoToDelete = toDoRepository.findById(id);
         if (toDoToDelete == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo with ID " + id + " not found");
         }
+
+        // AssigneeList bereinigen, falls vorhanden
+        if (toDoToDelete.getAssigneeList() != null) {
+            toDoToDelete.getAssigneeList().clear();
+        }
+
+        toDoRepository.save(toDoToDelete);
         toDoRepository.deleteById(id);
     }
 }

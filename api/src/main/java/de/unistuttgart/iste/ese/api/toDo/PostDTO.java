@@ -53,6 +53,9 @@ public class PostDTO {
     }
 
     public void setFinished(boolean finished) {
+        if(finished){
+            finishedDate = new Date().getTime();
+        }
         this.finished = finished;
     }
 
@@ -81,11 +84,12 @@ public class PostDTO {
     }
 
     public Long getFinishedDate() {
+
         return finishedDate;
     }
 
     public void setFinishedDate(Long finishedDate) {
+
         this.finishedDate = finishedDate;
     }
 }
-

@@ -13,6 +13,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.*;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -28,7 +30,7 @@ public class ToDo {
     private String description;
     private boolean finished;
 
-    @ManyToMany
+    @ManyToMany (fetch = FetchType.EAGER)
     @JoinTable(
         name = "todo_assignee_list",
         joinColumns = @JoinColumn(name = "todo_id"),
@@ -82,7 +84,9 @@ public class ToDo {
     }
 
     public void setFinished(boolean finished) {
-
+        if(finished){
+            this.setFinishedDate(new Date());
+        }
         this.finished = finished;
     }
 
@@ -97,7 +101,7 @@ public class ToDo {
     }
 
     public List<Assignee> getAssigneeList() {
-        return assigneeList;
+        return assigneeList != null ? assigneeList : new ArrayList<>();
     }
 
     public void setAssigneeList(List<Assignee> assigneeList) {
@@ -135,4 +139,3 @@ public class ToDo {
 
 
 }
-

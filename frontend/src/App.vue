@@ -16,10 +16,13 @@ import "agnostic-vue/dist/index.css";
             <RouterLink to="/">Home</RouterLink>
           </HeaderNavItem>
           <HeaderNavItem>
-            <RouterLink to="/about">About</RouterLink>
+            <RouterLink to="/createTodos">Todo erstellen</RouterLink>
           </HeaderNavItem>
           <HeaderNavItem>
-            <RouterLink to="/cats">Cats</RouterLink>
+            <RouterLink to="/assignees">Assignees</RouterLink>
+          </HeaderNavItem>
+          <HeaderNavItem>
+            <RouterLink to="/todos">Todos</RouterLink>
           </HeaderNavItem>
         </HeaderNav>
       </template>
