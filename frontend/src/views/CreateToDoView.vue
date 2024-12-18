@@ -170,7 +170,6 @@ function createTodo() {
 
 <style scoped>
 
-
 .search-bar {
   width: 100%;
   padding: 8px;
