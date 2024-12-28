@@ -98,6 +98,27 @@ function fetchAllAssignees() {
     });
 }
 
+async function downloadCSV() {
+  try {
+    const response = await fetch(`${config.apiBaseUrl}/csv-downloads/todos`);
+    if (!response.ok) throw new Error('Download fehlgeschlagen');
+    
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'todos.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    showToast(new Toast("Success", "CSV erfolgreich heruntergeladen", "success", faCheck, 5));
+  } catch (error) {
+    showToast(new Toast("Error", "CSV Download fehlgeschlagen", "error", faXmark, 10));
+  }
+}
+
 // Delete a Todo
 function deleteTodo(id: number) {
   fetch(`${config.apiBaseUrl}/todos/${id}`, { method: "DELETE" })
@@ -345,7 +366,11 @@ onMounted(() => {
 
 <template>
   <div class="todo-view">
-    <!-- Search and filter options -->
+    <!-- Export-Button über der Tabelle -->
+    <div class="export-container">
+      <button class="btn export-btn" @click="downloadCSV">Exportiere Todos als CSV</button>
+    </div>
+    <!-- Search and filter options and download csv button -->
     <div class="filters">
       <input
         v-model="searchQuery"
@@ -383,6 +408,7 @@ onMounted(() => {
           <th>Fällig am</th>
           <th v-if="showCompletedTodos">Abgeschlossen am</th>
           <th>Fertig</th>
+          <th>Katogorie</th>
           <th>Aktionen</th>
         </tr>
       </thead>
@@ -407,6 +433,7 @@ onMounted(() => {
           <td>
             <input type="checkbox" :checked="todo.finished" disabled :id="'todo-' + todo.id" :name="'todo-' + todo.id" />
           </td>
+          <td>{{ todo.category }}</td>
           <td>
             <button class="btn edit-btn" @click="openEditModal(todo)">Bearbeiten</button>
             <button class="btn delete-btn" @click="deleteTodo(todo.id)">Löschen</button>
@@ -432,6 +459,7 @@ onMounted(() => {
           <td>
             <input type="checkbox" :checked="todoItem.finished" @change="toggleFinished(todoItem)" :id="'todo-' + todoItem.id" :name="'todo-' + todoItem.id" />
           </td>
+          <td>{{ todoItem.category }}</td>
           <td>
             <button class="btn edit-btn" @click="openEditModal(todoItem)">Bearbeiten</button>
             <button class="btn delete-btn" @click="deleteTodo(todoItem.id)">Löschen</button>
@@ -580,6 +608,27 @@ onMounted(() => {
 .delete-btn:hover {
   background-color: #9e1614;
 }
+
+/* Csv Button*/
+.export-container {
+  text-align: right; 
+  position: relative; 
+  top: 100px; 
+}
+
+.export-btn {
+  background-color: #2482ad; 
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background-color: #0d0f88;
+}
+
 
 /* Modal Styles */
 .modal {

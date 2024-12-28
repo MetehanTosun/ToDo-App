@@ -11,4 +11,6 @@ interface Todo {
     createdDate: number;
     dueDate: number | null;
     finishedDate: Date | null;
+    category: string
 }
+

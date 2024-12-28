@@ -1,17 +1,8 @@
 package de.unistuttgart.iste.ese.api.toDo;
 
 import de.unistuttgart.iste.ese.api.assignee.Assignee;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.validation.constraints.NotNull;
-import jakarta.persistence.*;
-import java.util.Date;
 import java.util.List;
 
-
-import java.util.List;
 
 public class ToDoDTO {
     private Long id;
@@ -21,8 +12,9 @@ public class ToDoDTO {
     private List<Assignee> assigneeList;
     private Long createdDate;
     private Long dueDate;
+    private String category;
 
-    public ToDoDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeList, Long createdDate, Long dueDate) {
+    public ToDoDTO(Long id, String title, String description, boolean finished, List<Assignee> assigneeList, Long createdDate, Long dueDate, String category) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -30,11 +22,21 @@ public class ToDoDTO {
         this.assigneeList = assigneeList;
         this.createdDate = createdDate;
         this.dueDate = dueDate;
+        this.category = category;
     }
 
     public ToDoDTO() {}
 
     // Getters and Setters
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
     public Long getId() {
         return id;
     }

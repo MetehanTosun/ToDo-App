@@ -6,12 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import jakarta.validation.constraints.*;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
@@ -40,9 +35,10 @@ public class ToDo {
     private Date createdDate;
     private Date dueDate;
     private Date finishedDate;
+    private String category;
 
 
-    public ToDo ( String title, String description, boolean finished, List<Assignee> assigneeList, Date createdDate, Date dueDate, Date finishedDate){
+    public ToDo ( String title, String description, boolean finished, List<Assignee> assigneeList, Date createdDate, Date dueDate, Date finishedDate, String category){
         this.title = title;
         this.description = description;
         this.finished = finished;
@@ -50,6 +46,7 @@ public class ToDo {
         this.createdDate = createdDate;
         this.dueDate = dueDate;
         this.finishedDate = finishedDate;
+        this.category = category;
     }
 
 
@@ -57,6 +54,14 @@ public class ToDo {
 
     }
     // Get and Set functions
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
 
     public String getTitle() {
 

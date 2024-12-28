@@ -1,14 +1,10 @@
 package de.unistuttgart.iste.ese.api.toDo;
 
-import de.unistuttgart.iste.ese.api.assignee.Assignee;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.validation.constraints.NotNull;
-import jakarta.persistence.*;
+
+
 import java.util.Date;
 import java.util.List;
+
 
 public class PostDTO {
     private String title;

@@ -3,14 +3,15 @@ package de.unistuttgart.iste.ese.api.toDo;
 import de.unistuttgart.iste.ese.api.ApiVersion1;
 import de.unistuttgart.iste.ese.api.assignee.Assignee;
 import de.unistuttgart.iste.ese.api.assignee.AssigneeRepository;
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,9 @@ public class ToDoController {
     @Autowired
     private AssigneeRepository assigneeRepository;
 
+    @Autowired
+    private TodoModel todoModel;
+
     //Get all todos
     @GetMapping("/todos")
     public List<GetDTO> getToDos() {
@@ -31,19 +35,21 @@ public class ToDoController {
         List<GetDTO> getDTOs = new ArrayList<>();
         for (ToDo toDo : allToDos) {
             GetDTO getDTO = new GetDTO(
-                    toDo.getId(),
-                    toDo.getTitle(),
-                    toDo.getDescription(),
-                    toDo.isFinished(),
-                    toDo.getAssigneeList(),
-                    toDo.getCreatedDate().getTime(),
-                    toDo.getDueDate() != null ? toDo.getDueDate().getTime() : null,
-                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null
+                toDo.getId(),
+                toDo.getTitle(),
+                toDo.getDescription(),
+                toDo.isFinished(),
+                toDo.getAssigneeList(),
+                toDo.getCreatedDate().getTime(),
+                toDo.getDueDate() != null ? toDo.getDueDate().getTime() : null,
+                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null,
+                toDo.getCategory()
             );
             getDTOs.add(getDTO);
         }
         return getDTOs;
     }
+
     // Get a single todo
     @GetMapping("/todos/{id}")
     public GetDTO getToDo(@PathVariable("id") long id) {
@@ -66,8 +72,58 @@ public class ToDoController {
                 new ArrayList<>(toDo.getAssigneeList()), // Assignees als konkrete Liste
                 toDo.getCreatedDate().getTime(),
                 toDo.getDueDate() != null ? toDo.getDueDate().getTime() : null,
-                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null
+                toDo.getFinishedDate() != null ? toDo.getFinishedDate().getTime() : null,
+                toDo.getCategory()
         );
+    }
+
+    @GetMapping("/csv-downloads/todos")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<String> getToDoCSV() {
+        List<ToDo> allToDos = (List<ToDo>) toDoRepository.findAll();
+        StringBuilder csvContent = new StringBuilder();
+
+        // Header
+        csvContent.append("id,title,description,finished,assignees,createdDate,dueDate,finishedDate,category\n");
+
+        // Data rows
+        for (ToDo todo : allToDos) {
+            csvContent.append(todo.getId()).append(",");
+            csvContent.append(skipCSV(todo.getTitle())).append(",");
+            csvContent.append(skipCSV(todo.getDescription())).append(",");
+            csvContent.append(todo.isFinished()).append(",");
+
+            // connect assignees with +
+            if (!todo.getAssigneeList().isEmpty()) {
+                String assignees = todo.getAssigneeList().stream()
+                    .map(a -> a.getPreName() + " " + a.getName())
+                    .collect(Collectors.joining("+"));
+                csvContent.append(skipCSV(assignees));
+            }
+            csvContent.append(",");
+
+            // format date
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            csvContent.append(dateFormat.format(todo.getCreatedDate())).append(",");
+            csvContent.append(todo.getDueDate() != null ? dateFormat.format(todo.getDueDate()) : "").append(",");
+            csvContent.append(todo.getFinishedDate() != null ? dateFormat.format(todo.getFinishedDate()) : "").append(",");
+            csvContent.append(skipCSV(todo.getCategory())).append("\n");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.CONTENT_TYPE, "text/csv");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=todos.csv");
+
+        return new ResponseEntity<>(csvContent.toString(), headers, HttpStatus.OK);
+    }
+
+    // skip csv file if null
+    private String skipCSV(String field) {
+        if (field == null) return "";
+        if (field.contains(",") || field.contains("\"")) {
+            return "\"" + field.replace("\"", "\"\"") + "\"";
+        }
+        return field;
     }
 
     @PostMapping("/todos")
@@ -85,31 +141,36 @@ public class ToDoController {
         if (requestBody.getAssigneeIdList() != null) {
             for (Long assigneeId : requestBody.getAssigneeIdList()) {
                 Assignee assignee = assigneeRepository.findById(assigneeId)
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignee not found"));
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Assignee not found"));
                 assignees.add(assignee);
             }
         }
         Date dueDate = requestBody.getDueDate() != null ? new Date(requestBody.getDueDate()) : null;
 
+        String category = todoModel.predictClass(requestBody.getTitle());
+
         ToDo toDo = new ToDo(
-                requestBody.getTitle(),
-                requestBody.getDescription(),
-                requestBody.isFinished(),
-                assignees,
-                new Date(),
-                dueDate,
-                null
+            requestBody.getTitle(),
+            requestBody.getDescription(),
+            requestBody.isFinished(),
+            assignees,
+            new Date(),
+            dueDate,
+            null,
+            category
         );
 
         toDoRepository.save(toDo);
+
         return new ToDoDTO(
-                toDo.getId(),
-                requestBody.getTitle(),
-                requestBody.getDescription(),
-                requestBody.isFinished(),
-                assignees,
-                toDo.getCreatedDate().getTime(),
-                dueDate != null ? dueDate.getTime() : null
+            toDo.getId(),
+            requestBody.getTitle(),
+            requestBody.getDescription(),
+            requestBody.isFinished(),
+            assignees,
+            toDo.getCreatedDate().getTime(),
+            dueDate != null ? dueDate.getTime() : null,
+            category
         );
     }
 
@@ -130,13 +191,16 @@ public class ToDoController {
                 }
                 Assignee existingAssignee = assigneeRepository.findById(assigneeId).get();
                 assignees.add(existingAssignee);
-
             }
         }
+
+        String category = todoModel.predictClass(requestBody.getTitle());
+
         // Update fields
         existingTodo.setTitle(requestBody.getTitle());
         existingTodo.setDescription(requestBody.getDescription());
         existingTodo.setAssigneeList(assignees);
+        existingTodo.setCategory(category);
 
         if (requestBody.getDueDate() != null) {
             Date dueDate = new Date(requestBody.getDueDate());
@@ -146,7 +210,18 @@ public class ToDoController {
         existingTodo.setFinished(requestBody.isFinished());
         existingTodo.setFinishedDate(requestBody.isFinished() ? new Date() : null);
         toDoRepository.save(existingTodo);
-        return new GetDTO(existingTodo.getId(), existingTodo.getTitle(), existingTodo.getDescription(), existingTodo.isFinished(),existingTodo.getAssigneeList(),existingTodo.getCreatedDate().getTime(),existingTodo.getDueDate().getTime(),existingTodo.isFinished() ? new Date().getTime(): null);
+
+        return new GetDTO(
+            existingTodo.getId(),
+            existingTodo.getTitle(),
+            existingTodo.getDescription(),
+            existingTodo.isFinished(),
+            existingTodo.getAssigneeList(),
+            existingTodo.getCreatedDate().getTime(),
+            existingTodo.getDueDate().getTime(),
+            existingTodo.isFinished() ? new Date().getTime(): null,
+            category
+        );
     }
 
     @DeleteMapping("/todos/{id}")
