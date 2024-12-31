@@ -341,9 +341,7 @@ function openEditModal(todo: Todo) {
   currentTodo.value = todo;
   editTitle.value = todo.title;
   editDescription.value = todo.description;
-  editDueDate.value = todo.dueDate
-    ? new Date(todo.dueDate).toLocaleDateString()
-    : null;
+  editDueDate.value = todo.dueDate? new Date(todo.dueDate).toLocaleDateString(): null;
   selectedAssignees.value = [...todo.assigneeList]; // Load assignees into the modal
   showEditModal.value = true;
 }
@@ -367,10 +365,9 @@ onMounted(() => {
 <template>
   <div class="todo-view">
     <!-- Export-Button über der Tabelle -->
-    <div class="export-container">
-      <button class="btn export-btn" @click="downloadCSV">Exportiere Todos als CSV</button>
-    </div>
-    <!-- Search and filter options and download csv button -->
+    <button class="btn export-btn" @click="downloadCSV">Exportiere Todos als CSV</button>
+    
+    <!-- Search and filter options -->
     <div class="filters">
       <input
         v-model="searchQuery"
@@ -387,7 +384,7 @@ onMounted(() => {
 
     <!-- Sorting options -->
     <div class="sort-options">
-      <label for="sortKey">Sort by:</label>
+      <label for="sortKey">Sortieren nach:</label>
       <select id="sortKey" v-model="sortKey" class="dropdown" name="sortKey">
         <option value="title">Titel</option>
         <option value="dueDate">Fälligkeitsdatum</option>
@@ -525,16 +522,18 @@ onMounted(() => {
 </template>
 
 
-
 <style scoped>
 .todo-view {
+  position: relative;
   padding: 20px;
 }
 
 .filters {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  position: relative;
+  margin-bottom: 30px; 
+  gap: 20px;
+  z-index: 1000;
 }
 
 .sort-options label {
@@ -544,8 +543,9 @@ onMounted(() => {
 .sort-options {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 20px; 
+  margin-bottom: 30px;
+  margin-left: 20px;
   color: #000;
 }
 
@@ -609,20 +609,20 @@ onMounted(() => {
   background-color: #9e1614;
 }
 
-/* Csv Button*/
-.export-container {
-  text-align: right; 
-  position: relative; 
-  top: 100px; 
-}
 
+/* Csv Button*/
 .export-btn {
+  position: absolute;
+  top: 50px;  /* Erhöhen Sie diesen Wert, um den Button weiter nach unten zu verschieben */
+  right: 20px;
   background-color: #2482ad; 
   color: white;
   border: none;
   padding: 8px 16px;
-  border-radius: 4px;
   cursor: pointer;
+  z-index: 1000;
+  width: auto;   /* Automatische Breite basierend auf Inhalt */
+
 }
 
 .export-btn:hover {

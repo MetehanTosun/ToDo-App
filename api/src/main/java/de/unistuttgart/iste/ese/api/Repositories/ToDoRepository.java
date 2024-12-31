@@ -1,5 +1,6 @@
-package de.unistuttgart.iste.ese.api.toDo;
+package de.unistuttgart.iste.ese.api.Repositories;
 
+import de.unistuttgart.iste.ese.api.Models.ToDo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

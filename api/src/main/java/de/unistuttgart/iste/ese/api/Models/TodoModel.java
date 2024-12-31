@@ -1,4 +1,4 @@
-package de.unistuttgart.iste.ese.api.toDo;
+package de.unistuttgart.iste.ese.api.Models;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.xml.bind.JAXBException;

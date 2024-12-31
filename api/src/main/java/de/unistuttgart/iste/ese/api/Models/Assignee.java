@@ -1,12 +1,16 @@
-package de.unistuttgart.iste.ese.api.assignee;
+package de.unistuttgart.iste.ese.api.Models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "assignees")
+@Getter
+@Setter
 public class Assignee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,36 +37,4 @@ public class Assignee {
 
     public Assignee() {}
 
-    // Getter und Setter
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getPreName() {
-        return preName;
-    }
-
-    public void setPreName(String preName) {
-        this.preName = preName;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 }
