@@ -3,35 +3,24 @@ import config from "@/config";
 import { showToast, Toast } from "@/ts/toasts";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { onMounted, ref, type Ref } from "vue";
-import type { Assignee } from "@/ts/Assignee";
+import { type Assignee, assignees, fetchAllAssignees } from "@/ts/Assignee";
+import { addAssigneeAdded, addAssigneeUpdated, addAssigneeDeleted } from "@/ts/activity";
 
-// State for assignees and form fields
-const assignees: Ref<Assignee[]> = ref([]);
-const prename = ref('');
-const name = ref('');
-const email = ref('');
-const searchQuery = ref('');
-const selectedAssignee: Ref<Assignee | null> = ref(null);
+// Initialize reactive state variables for form management
+const prename = ref('');           // Store first name input
+const name = ref('');              // Store last name input
+const email = ref('');             // Store email input
+const searchQuery = ref('');       // Store search query
+const selectedAssignee: Ref<Assignee | null> = ref(null);  // Store currently selected assignee for editing
 
-// Fetch all assignees 
-function fetchAllAssignees() {
-  fetch(`${config.apiBaseUrl}/assignees`)
-    .then((response) => response.json())
-    .then((data) => {
-      assignees.value = data as Assignee[];
-    })
-    .catch((error) =>
-      showToast(new Toast("Error", error.message, "error", faXmark, 10))
-    );
-}
-
-// Fetch specific assignee by search query
+// Function to search and fetch specific assignee
 function fetchAssignee() {
   if (searchQuery.value.trim() === '') {
-    fetchAllAssignees();
+    fetchAllAssignees();  // If search is empty, fetch all assignees
     return;
   }
 
+  // API call to fetch specific assignee
   fetch(`${config.apiBaseUrl}/assignees/${searchQuery.value}`)
     .then((response) => response.json())
     .then((data) => {
@@ -42,7 +31,7 @@ function fetchAssignee() {
     );
 }
 
-// Create a new assignee
+// Function to create new assignee
 function createAssignee() {
   fetch(`${config.apiBaseUrl}/assignees`, {
     method: "POST",
@@ -50,14 +39,14 @@ function createAssignee() {
     body: JSON.stringify({ prename: prename.value, name: name.value, email: email.value }),
   })
     .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to create assignee");
-      }
+      if (!response.ok) throw new Error("Assignee konnte nicht erstellt werden");
       return response.json();
     })
     .then((data) => {
+      // Update local state and show success message
       assignees.value.push(data as Assignee);
-      showToast(new Toast("Erfolg!", `Erfolgreich Assignee erstellt mit Name: ${prename.value}`, "success", faCheck, 5));
+      showToast(new Toast("Erfolg!", `Erfolgreich Assignee erstellt mit dem Namen: ${prename.value} ${name.value}`, "success", faCheck, 5));
+      // Reset form fields
       prename.value = '';
       name.value = '';
       email.value = '';
@@ -65,55 +54,39 @@ function createAssignee() {
     .catch((error) =>
       showToast(new Toast("Error", error.message, "error", faXmark, 5))
     );
+    addAssigneeAdded(prename.value, name.value);
 }
 
-// Update an existing assignee
+// Function to update existing assignee
 function updateAssignee(id: number) {
+  // Create object with only changed fields
   const updatedAssignee: any = {};
-  const changedFields: string[] = [];
+  if (prename.value) updatedAssignee.prename = prename.value;
+  if (name.value) updatedAssignee.name = name.value;
+  if (email.value) updatedAssignee.email = email.value;
 
-  // Collect changed fields
-  if (prename.value) {
-    updatedAssignee.prename = prename.value;
-    changedFields.push("Vorname");
-  }
-  if (name.value) {
-    updatedAssignee.name = name.value;
-    changedFields.push("Name");
-  }
-  if (email.value) {
-    updatedAssignee.email = email.value;
-    changedFields.push("Email");
-  }
-
-  // If no changes are made, show an error toast
-  if (changedFields.length === 0) {
-    showToast(new Toast("Error", "Keine Änderungen vorgenommen", "error", faXmark, 5));
-    return;
-  }
-
+  // API call to update assignee
   fetch(`${config.apiBaseUrl}/assignees/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(updatedAssignee),
   })
     .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to update assignee');
-      }
+      if (!response.ok) throw new Error('Assignee konnte nicht aktualisiert werden');
       return response.json();
     })
     .then((data) => {
-      // Update the assignee in the local list
+      // Update local state and show success message
       const index = assignees.value.findIndex(assignee => assignee.id === id);
-      if (index !== -1) {
-        assignees.value[index] = data;
-      }
+      if (index !== -1) assignees.value[index] = data;
+      showToast(new Toast("Erfolg", `Assignee "${updatedAssignee.prename} ${updatedAssignee.name}" wurde aktualisiert`, "success", faCheck, 5));
 
-      const updatedFields = changedFields.join(", ");
-      showToast(new Toast("Erfolg!", `Erfolgreich aktualisiert: ${updatedFields}`, "success", faCheck, 5));
+      // Record activity
+      const updatedPrename = data.prename || prename.value;
+      const updatedName = data.name || name.value;
+      addAssigneeUpdated(updatedPrename, updatedName);
 
-      // Reset form fields and selected assignee
+      // Reset form and selection
       prename.value = '';
       name.value = '';
       email.value = '';
@@ -124,30 +97,39 @@ function updateAssignee(id: number) {
     });
 }
 
-// Delete an assignee
+// Function to delete assignee
 function deleteAssignee(id: number) {
+  // Store assignee details before deletion for activity logging
+  const assigneeToDelete = assignees.value.find(assignee => assignee.id === id);
+  const assigneePrename = assigneeToDelete?.prename || "Unbekannt";
+  const assigneeName = assigneeToDelete?.name || "Unbekannt";
+
+  // API call to delete assignee
   fetch(`${config.apiBaseUrl}/assignees/${id}`, { method: "DELETE" })
     .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to delete assignee");
-      }
+      if (!response.ok) throw new Error("Assignee konnte nicht gelöscht werden");
+      // Update local state and show success message
       assignees.value = assignees.value.filter((a) => a.id !== id);
-      showToast(new Toast("Alert", `Assignee gelöscht!`, "success", faCheck, 5));
+      showToast(new Toast("Erfolg", `Assignee "${assigneePrename} ${assigneeName}" wurde gelöscht`, "success", faCheck, 5));
     })
     .catch((error) =>
       showToast(new Toast("Error", error.message, "error", faXmark, 5))
     );
+    
+    // Record deletion activity
+    addAssigneeDeleted(assigneePrename, assigneeName);
 }
 
-// Select an assignee to edit
+// Function to select assignee for editing
 function selectAssignee(assignee: Assignee) {
   selectedAssignee.value = assignee;
+  // Populate form fields with selected assignee's data
   prename.value = assignee.prename;
   name.value = assignee.name;
   email.value = assignee.email;
 }
 
-// Fetch all assignees when the component is mounted
+// Initialize component by fetching all assignees
 onMounted(() => fetchAllAssignees());
 </script>
 

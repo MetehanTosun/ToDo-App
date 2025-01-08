@@ -2,13 +2,13 @@
 import config from "@/config";
 import { showToast, Toast } from "@/ts/toasts";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { onMounted, ref, computed } from "vue";
-import type { Assignee } from "@/ts/Assignee";
+import { onMounted, ref } from "vue";
+import { fetchAllAssignees, searchAssignee, filteredAssignees} from "@/ts/Assignee";
 import type { Todo } from "@/ts/Todo";
+import { addTodoCreated } from "@/ts/activity";
 
-// Reactive state for Todos and Assignees
+// Reactive state for Todos 
 const todos = ref<Todo[]>([]); // List of todos
-const assignees = ref<Assignee[]>([]); // List of available assignees
 
 // Reactive variables for creating a new Todo
 const selectedAssigneeIds = ref<number[]>([]); 
@@ -18,30 +18,9 @@ const finished = ref(false);
 const createdDate = ref('');
 const dueDate = ref('');
 const finishedDate = ref('');
-const searchQuery = ref("");
-
-// Fetch all available assignees 
-function fetchAllAssignees() {
-  fetch(`${config.apiBaseUrl}/assignees`)
-    .then((response) => response.json())
-    .then((data) => {
-      assignees.value = data as Assignee[];
-    })
-    .catch((error) =>
-      showToast(new Toast("Fehler", error.message, "error", faXmark, 10)) 
-    );
-}
 
 // Fetch assignees on component mount
 onMounted(() => fetchAllAssignees());
-
-// Computed property for filtered assignees based on the search query
-const filteredAssignees = computed(() => {
-  return assignees.value.filter(assignee => {
-    const fullName = `${assignee.prename} ${assignee.name}`.toLowerCase();
-    return fullName.includes(searchQuery.value.toLowerCase());
-  });
-});
 
 // Create a new Todo 
 function createTodo() {
@@ -62,7 +41,7 @@ function createTodo() {
   })
     .then(response => {
       if (!response.ok) {
-        throw new Error("Failed to create todo");
+        throw new Error("Todo konnte nicht erstellt werden");
       }
       return response.json();
     })
@@ -71,14 +50,15 @@ function createTodo() {
       todos.value.push(createdTodo); // Add the created todo to the list
     })
     .then(() => {
-      showToast(new Toast("Erfolg", "Todo erfolgreich erstellt!", "success", faCheck, 5)); 
+      showToast(new Toast("Erfolg", `Todo "${title.value}" wurde erfolgreich erstellt`, "success", faCheck, 5)); 
     })
     .catch(error => {
-      showToast(new Toast("Fehler", "Todo konnte nicht erstellt werden!", error.message, faXmark, 5)); 
+      showToast(new Toast("Fehler", error.message, "error", faXmark, 5)); 
     });
+    
+    addTodoCreated(title.value);
 }
 </script>
-
 
 <template>
   <div class="todo-form">
@@ -119,7 +99,7 @@ function createTodo() {
         <!-- Search bar for filtering assignees -->
         <input
           type="text"
-          v-model="searchQuery"
+          v-model="searchAssignee"
           placeholder="Personen suchen..."
           class="search-bar"
           name="searchQuery"
@@ -166,7 +146,6 @@ function createTodo() {
     </div>
   </div>
 </template>
-
 
 <style scoped>
 
@@ -264,8 +243,6 @@ button.btn:hover {
   margin: 0; 
   font-size: 14px;
 }
-
-
 </style>
 
 

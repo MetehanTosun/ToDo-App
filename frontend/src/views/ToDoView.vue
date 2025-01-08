@@ -1,77 +1,52 @@
 <script setup lang="ts">
+// Import necessary Vue composition API functions and custom components/utilities
 import { ref, computed, onMounted } from "vue";
 import config from "@/config";
 import { showToast, Toast } from "@/ts/toasts";
-import { faXmark, faCheck } from "@fortawesome/free-solid-svg-icons"; // Import icons for toast notifications
-import type { Assignee } from "@/ts/Assignee";
-import type { Todo } from "@/ts/Todo";
+import { faXmark, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { fetchAllAssignees, searchAssignee, filteredAssignees } from "@/ts/Assignee";
+import { type Todo, fetchTodos, deleteTodo, updateTodo, showEditModal, currentTodo, editTitle, editDescription, editDueDate, selectedAssignees } from "@/ts/Todo";
+import { addTodoStatusChanged } from "@/ts/activity";
 
-// Reactive references for Todos and Assignees
-const todos = ref<Todo[]>([]); // Holds all Todos
-const assignees = ref<Assignee[]>([]); // Holds all available Assignees
+// Reactive references for Todos 
+import { todos } from "@/ts/Todo"; // Holds all Todos
 
-// Search and filter states
-const searchQuery = ref(""); // Search term for Todos
-const todo = ref<Todo | null>(null); // A single Todo based on the search query
-const filterTitle = ref(""); // Filter criteria for title
-const filterDueDate = ref<string | null>(null); // Filter criteria for due date
-const showCompletedTodos = ref(false); // Flag to display completed Todos
+// Search and filtering state management
+const searchQuery = ref("");           // For real-time todo search
+const todo = ref<Todo | null>(null);   // Currently selected/searched todo
+const filterTitle = ref("");           // Title filter
+const filterDueDate = ref<string | null>(null);  // Due date filter
+const showCompletedTodos = ref(false); // Toggle for completed todos view
 
-// States for the edit modal
-const showEditModal = ref(false); // Shows or hides the edit modal
-const currentTodo = ref<Todo | null>(null); // The currently edited Todo
-const editTitle = ref(""); // Title of the Todo in the modal
-const editDescription = ref(""); // Description of the Todo in the modal
-const editDueDate = ref<string | null>(""); // Due date of the Todo in the modal
-const selectedAssignees = ref<Assignee[]>([]); // Selected assignees in the modal
+// Sorting state management
+const sortKey = ref<"title" | "dueDate" | null>(null);  // Current sort field
+const sortOrder = ref(1);  // 1 for ascending, -1 for descending
 
-// Sorting options
-const sortKey = ref<"title" | "dueDate" | null>(null); // Sorting key
-const sortOrder = ref(1); // Sorting order: 1 = ascending, -1 = descending
-
-// Fetch all Todos 
-function fetchTodos() {
-  fetch(`${config.apiBaseUrl}/todos`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((response) => {
-      if (!response.ok) throw new Error("Failed to fetch todos");
-      return response.json();
-    })
-    .then((data) => {
-      todos.value = data as Todo[];
-    })
-    .catch((error) => {
-      console.error(error);
-      showToast(new Toast("Error", error.message, "error", faXmark, 5));
-    });
-}
-
-// Search for a Todo by name
+// Search function to find a specific todo by name
 function fetchTodoByName() {
   const query = searchQuery.value.trim();
   if (query === "") {
-    todo.value = null; // Reset if no search string is entered
+    todo.value = null;
     return;
   }
+  // Find matching todo in current list
   const matchedTodo = todos.value.find((todo) =>
     todo.title.toLowerCase().includes(query.toLowerCase())
   );
+  
   if (!matchedTodo) {
     showToast(new Toast("Info", "Todo nicht gefunden", "info", faXmark, 5));
     todo.value = null;
     return;
   }
-  // Fetch Todo details by ID
+  
+  // Fetch detailed todo data from API
   fetch(`${config.apiBaseUrl}/todos/${matchedTodo.id}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
   })
     .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to fetch todo");
-      }
+      if (!response.ok) throw new Error("Abrufen des Todos fehlgeschlagen");
       return response.json();
     })
     .then((data) => {
@@ -83,80 +58,29 @@ function fetchTodoByName() {
     });
 }
 
-// Fetch all assignees 
-function fetchAllAssignees() {
-  fetch(`${config.apiBaseUrl}/assignees`, {
-    method: "GET",
-    headers: { "Content-Type": "application/json" },
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      assignees.value = data as Assignee[];
-    })
-    .catch((error) => {
-      showToast(new Toast("Error", error.message, "error", faXmark, 10));
-    });
-}
-
-async function downloadCSV() {
-  try {
-    const response = await fetch(`${config.apiBaseUrl}/csv-downloads/todos`);
-    if (!response.ok) throw new Error('Download fehlgeschlagen');
-    
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'todos.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    showToast(new Toast("Success", "CSV erfolgreich heruntergeladen", "success", faCheck, 5));
-  } catch (error) {
-    showToast(new Toast("Error", "CSV Download fehlgeschlagen", "error", faXmark, 10));
-  }
-}
-
-// Delete a Todo
-function deleteTodo(id: number) {
-  fetch(`${config.apiBaseUrl}/todos/${id}`, { method: "DELETE" })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Failed to delete todo");
-      }
-      todos.value = todos.value.filter((todo) => todo.id !== id);
-      showToast(new Toast("Erfolg!", "Todo erfolgreich gelöscht!", "success", faCheck, 5));
-    })
-    .catch((error) =>
-      showToast(new Toast("Error", error.message, "error", faXmark, 5))
-    );
-}
-
-// Computed property for filtered and sorted Todos
+// Computed property that filters and sorts todos based on current criteria
 const filteredTodos = computed(() => {
   let filtered = todos.value;
 
-  // Filter by title
+  // Apply title filter
   if (filterTitle.value) {
     filtered = filtered.filter((todo) =>
       todo.title.toLowerCase().includes(filterTitle.value.toLowerCase())
     );
   }
 
-  // Filter by due date
+  // Apply due date filter
   if (filterDueDate.value) {
     const dueDate = new Date(filterDueDate.value).getTime();
     filtered = filtered.filter((todo) => todo.dueDate === dueDate);
   }
 
-  // Show only completed Todos
+  // Filter completed todos if enabled
   if (showCompletedTodos.value) {
     filtered = filtered.filter((todo) => todo.finished && todo.finishedDate);
   }
 
-  // Sort Todos
+  // Apply sorting if a sort key is selected
   if (sortKey.value) {
     filtered = filtered.slice().sort((a, b) => {
       const valueA = a[sortKey.value as keyof Todo];
@@ -172,113 +96,19 @@ const filteredTodos = computed(() => {
   return filtered;
 });
 
-
-function updateTodo() {
-  // Ensure a Todo is selected for updating
-  if (!currentTodo.value) {
-    showToast(
-      new Toast("Error","Kein Todo zum Aktualisieren ausgewählt","error",faXmark,5)
-    );
-    return;
-  }
-
-  const updatedTodo: any = {};
-
-  // Collect changes to the Todo
-  if (editTitle.value && editTitle.value !== currentTodo.value.title) {
-    updatedTodo.title = editTitle.value;
-  } else {
-    updatedTodo.title = currentTodo.value.title;
-  }
-
-  if (
-    editDescription.value &&
-    editDescription.value !== currentTodo.value.description
-  ) {
-    updatedTodo.description = editDescription.value;
-  } else {
-    updatedTodo.description = currentTodo.value.description;
-  }
-
-  updatedTodo.finished = currentTodo.value.finished; // Keep the existing completion status, if u do not change it
-
-  if (
-    editDueDate.value &&
-    new Date(editDueDate.value).getTime() !== currentTodo.value.dueDate
-  ) {
-    updatedTodo.dueDate = new Date(editDueDate.value).getTime();
-  } else {
-    updatedTodo.dueDate = currentTodo.value.dueDate;
-  }
-
-  if (
-    selectedAssignees.value &&
-    JSON.stringify(selectedAssignees.value.map((a) => a.id)) !==
-      JSON.stringify(currentTodo.value.assigneeList.map((a) => a.id))
-  ) {
-    updatedTodo.assigneeIdList = selectedAssignees.value.map((a) => a.id);
-  } else {
-    updatedTodo.assigneeIdList = currentTodo.value.assigneeList.map(
-      (a) => a.id
-    );
-  }
-
-  console.log("Updated Todo Payload:", updatedTodo);
-
-  // API call to update the Todo
-  fetch(`${config.apiBaseUrl}/todos/${currentTodo.value.id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(updatedTodo),
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Fehler beim Aktualisieren des Todos");
-      }
-      return response.json();
-    })
-    .then((data) => {
-      // Update the local list of Todos
-      const index = todos.value.findIndex(
-        (todo) => todo.id === currentTodo.value?.id
-      );
-      if (index !== -1) {
-        todos.value[index] = { ...todos.value[index], ...data };
-      }
-      showToast(
-        new Toast("Erfolg!","Todo erfolgreich aktualisiert!","success",faCheck,5)
-      );
-      showEditModal.value = false;
-
-      // Reset form fields
-      editTitle.value = "";
-      editDescription.value = "";
-      editDueDate.value = null;
-      selectedAssignees.value = [];
-      currentTodo.value = null;
-    })
-    .catch((error) => {
-      console.error("Fehler beim Aktualisieren:", error);
-      showToast(new Toast("Error", error.message, "error", faXmark, 5));
-    });
-}
-
+// Function to update a todo's completion status
 function updateFinishedStatus(todo: Todo): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Find the current Todo in the list
     const currentTodoData = todos.value.find((t) => t.id === todo.id);
 
     if (!currentTodoData) {
-      showToast(
-        new Toast("Error", "Todo nicht gefunden", "error", faXmark, 5)
-      );
+      showToast(new Toast("Error", "Todo nicht gefunden", "error", faXmark, 5));
       reject(new Error("Todo nicht gefunden"));
       return;
     }
 
-    const updatedTodo: any = {
+    // Prepare updated todo data
+    const updatedTodo = {
       title: currentTodoData.title,
       description: currentTodoData.description,
       finished: todo.finished,
@@ -286,21 +116,18 @@ function updateFinishedStatus(todo: Todo): Promise<void> {
       dueDate: currentTodoData.dueDate,
     };
 
-    // API call to update the completion status
+    // Send update request to API
     fetch(`${config.apiBaseUrl}/todos/${todo.id}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updatedTodo),
     })
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Fehler beim Aktualisieren des Todos");
-        }
+        if (!response.ok) throw new Error("Fehler beim Aktualisieren des Todos");
         return response.json();
       })
       .then(() => {
+        // Update local todo state
         const index = todos.value.findIndex((t) => t.id === todo.id);
         if (index !== -1) {
           todos.value[index] = {
@@ -309,9 +136,7 @@ function updateFinishedStatus(todo: Todo): Promise<void> {
             finishedDate: todo.finished ? new Date() : null,
           };
         }
-        showToast(
-          new Toast("Erfolg","Todo Status erfolgreich aktualisiert!","success",faCheck,5)
-        );
+        showToast(new Toast("Erfolg", `Todo "${currentTodoData.title}" wurde ${todo.finished ? 'abgeschlossen' : 'wieder geöffnet'}`, "success", faCheck, 5));
         resolve();
       })
       .catch((error) => {
@@ -322,14 +147,14 @@ function updateFinishedStatus(todo: Todo): Promise<void> {
   });
 }
 
+// Toggle todo completion status
 function toggleFinished(todo: Todo) {
-  todo.finished = !todo.finished; // Toggle completion status locally
-  todo.finishedDate = todo.finished ? new Date() : null; // Update finishedDate
+  todo.finished = !todo.finished;
+  todo.finishedDate = todo.finished ? new Date() : null;
 
-  // Update the status via API
   updateFinishedStatus(todo)
     .then(() => {
-      // Optionally reload Todos if the backend might be unreliable
+      addTodoStatusChanged(todo.title, todo.finished);
       fetchTodos();
     })
     .catch((error) => {
@@ -337,29 +162,47 @@ function toggleFinished(todo: Todo) {
     });
 }
 
+// Open edit modal with current todo data
 function openEditModal(todo: Todo) {
   currentTodo.value = todo;
   editTitle.value = todo.title;
   editDescription.value = todo.description;
-  editDueDate.value = todo.dueDate? new Date(todo.dueDate).toLocaleDateString(): null;
-  selectedAssignees.value = [...todo.assigneeList]; // Load assignees into the modal
+  editDueDate.value = todo.dueDate ? new Date(todo.dueDate).toLocaleDateString() : null;
+  selectedAssignees.value = [...todo.assigneeList];
   showEditModal.value = true;
 }
 
-// Computed property for filtered assignees
-const filteredAssignees = computed(() => {
-  return assignees.value.filter((assignee) => {
-    const fullName = `${assignee.prename} ${assignee.name}`.toLowerCase();
-    return fullName.includes(searchQuery.value.toLowerCase());
-  });
-});
+// Function to download todos as CSV file
+function downloadCSV() {
+  fetch(`${config.apiBaseUrl}/csv-downloads/todos`)
+    .then((response) => {
+      if (!response.ok) throw new Error('Download fehlgeschlagen');
+      return response.blob();
+    })
+    .then((blob) => {
+      // Create and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'todos.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showToast(new Toast("Success", "CSV erfolgreich heruntergeladen", "success", faCheck, 5));
+    })
+    .catch((error) => {
+      console.error("Fehler beim CSV-Download:", error);
+      showToast(new Toast("Error", error.message, "error", faXmark, 10));
+    });
+}
 
-// Fetch Todos and assignees on component mount
+// Initialize data on component mount
 onMounted(() => {
   fetchTodos();
   fetchAllAssignees();
 });
-
 </script>
 
 <template>
@@ -489,7 +332,7 @@ onMounted(() => {
         <div class="form-group">
           <label for="editAssignees">Assignees</label>
           <input
-            v-model="searchQuery"
+            v-model="searchAssignee"
             type="text"
             placeholder="Search for Assignee..."
             class="form-input search-assignees"
@@ -520,7 +363,6 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
 
 <style scoped>
 .todo-view {
@@ -613,7 +455,7 @@ onMounted(() => {
 /* Csv Button*/
 .export-btn {
   position: absolute;
-  top: 50px;  /* Erhöhen Sie diesen Wert, um den Button weiter nach unten zu verschieben */
+  top: 50px; 
   right: 20px;
   background-color: #2482ad; 
   color: white;
@@ -621,7 +463,7 @@ onMounted(() => {
   padding: 8px 16px;
   cursor: pointer;
   z-index: 1000;
-  width: auto;   /* Automatische Breite basierend auf Inhalt */
+  width: auto;   
 
 }
 
