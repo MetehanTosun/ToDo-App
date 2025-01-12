@@ -1,18 +1,35 @@
-# frontend
+# Todo Management Frontend
 
-This is a Web-Application for organizing Todos and Assignees <http://localhost:5173>.
+A modern web application for organizing Todos and managing team assignments. Built with Vue.js and TypeScript <http://localhost:5173>.
+
+## Features
+- Todo management (create, update, delete)
+- Team member (Assignee) management
+- Status tracking and activity feed
+- Weekly due date overview
+- Export functionality (CSV)
+- Toast notifications 
 
 ## Prerequisites
 
-Install [Node.js](https://nodejs.org/en/) and ensure that the root folder of its installation is added to your PATH. You can check with this command: `echo %PATH%` (or echo $PATH on Linux / Git Bash).
+Install [Node.js](https://nodejs.org/en/) and ensure that the root folder of its installation is added to your PATH. 
+You can check with this command: `echo %PATH%` (or echo $PATH on Linux / Git Bash).
+
+## Tech Stack
+- Vue.js 3
+- TypeScript
+- Vite
+- Vue Router
+- FontAwesome Icons
+- Agnostic UI (Toast notifications)
 
 ## Development Setup
 
-There are multiple possibilities, here a few examples:
-
-- [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+### Recommended IDE Setup
+There are multiple possibilities:
+- [VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin)
 - [WebStorm](https://www.jetbrains.com/webstorm/) (brings the required plugins natively)
-- your favorite text editor + CLI
+- Your favorite text editor + CLI
 
 ## Project Setup
 
