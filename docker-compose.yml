@@ -1,10 +1,46 @@
 services:
+  # MariaDB Database
   database:
-    image: mariadb
+    image: mariadb:latest
+    container_name: todo-database
     restart: unless-stopped
-    ports:
-      - 3306:3306
     environment:
       MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: todos
+    ports:
+      - "3306:3306"
     volumes:
-      - ./mariadb-data:/var/lib/mysql
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - todo-network
+
+  # ToDo Application (Frontend + Backend)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todo-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Database connection
+      SPRING_DATASOURCE_URL: jdbc:mariadb://database:3306/todos?useSSL=false&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      # JPA settings
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"
+      # Server settings
+      SERVER_PORT: 8080
+    depends_on:
+      - database
+    networks:
+      - todo-network
+
+networks:
+  todo-network:
+    driver: bridge
+
+volumes:
+  mariadb-data:
