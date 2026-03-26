@@ -37,48 +37,58 @@ Task management web application enabling users to create, organize, and assign t
 - **Node.js**: Latest LTS version
 - **Database**: MariaDB (or use Docker Compose)
 - **Maven**: Included via Maven Wrapper
-- **Docker** (optional): For containerized database
+- **Docker** (optional): For containerized deployment
 
 ## Quick Start
 
-### 1. Database Setup
+### Option A: Docker Compose (Recommended)
 
-#### Option A: Using Docker Compose (Recommended)
 ```bash
-docker-compose up -d
+docker compose up
 ```
 
-#### Option B: Local MariaDB
-Install and start MariaDB locally. Update `api/src/main/resources/application.properties` if needed.
+App runs at: **http://localhost:8080/**
 
-### 2. Backend Setup
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- API Docs: http://localhost:8080/api-docs
+
+### Option B: Local Development
+
+#### 1. Database Setup
+
+Start MariaDB locally or run only the database via Docker:
+```bash
+docker compose up database
+```
+
+#### 2. Backend Setup
 
 ```bash
 cd api
-
-# Install dependencies and run
 ./mvnw spring-boot:run
 ```
 
-Backend runs at: **http://localhost:8080/api/v1/**
+Backend runs at: **http://localhost:8080/**
 
-- Swagger UI: http://localhost:8080/api/v1/swagger-ui
-- API Docs: http://localhost:8080/api/v1/api-docs
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- API Docs: http://localhost:8080/api-docs
 
-### 3. Frontend Setup
+#### 3. Frontend Setup
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Run development server
 npm run dev
 ```
 
 Frontend runs at: **http://localhost:5173/**
 
+
+## Troubleshooting
+
+### Docker build fails with npm errors (Docker Desktop on Linux)
+
+Go to Docker Desktop → Settings → Docker Engine and add `"dns": ["8.8.8.8", "1.1.1.1"]`, then Apply & Restart.
 
 ## Development
 
