@@ -18,7 +18,7 @@ public class Assignee {
     private Long id;
 
     @NotBlank
-    @JsonProperty("prename") // Damit JSON korrekt zugeordnet wird
+    @JsonProperty("prename")
     @Column(name = "pre_name")
     private String preName;
 

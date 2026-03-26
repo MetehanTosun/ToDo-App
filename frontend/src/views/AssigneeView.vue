@@ -167,7 +167,9 @@ onMounted(() => fetchAllAssignees());
           id="email"
           v-model="email"
           required
-          name="email"/>
+          name="email"
+          placeholder="@iste.uni-stuttgart.de"/>
+        <small>Nur Adressen mit @iste.uni-stuttgart.de sind erlaubt.</small>
       </div>
 
       <button @click="createAssignee" class="btn create-btn">Erstellen</button>
@@ -245,7 +247,9 @@ onMounted(() => fetchAllAssignees());
             type="email"
             id="edit-email"
             v-model="email"
-            autocomplete="email"/>
+            autocomplete="email"
+            placeholder="@iste.uni-stuttgart.de"/>
+          <small>Nur Adressen mit @iste.uni-stuttgart.de sind erlaubt.</small>
         </div>
 
         <div class="modal-buttons">
@@ -285,8 +289,17 @@ onMounted(() => fetchAllAssignees());
   font-weight: bold;
 }
 
+.input-group small {
+  color: #aaa;
+  font-size: 0.75rem;
+}
+
 .input-group input{
   color: #000;
+}
+
+.input-group input::placeholder {
+  color: #888;
 }
 
 .btn {

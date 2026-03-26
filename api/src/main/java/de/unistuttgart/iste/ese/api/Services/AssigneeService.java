@@ -106,7 +106,7 @@ public class AssigneeService {
             !email.endsWith("@iste.uni-stuttgart.de") ||
             email.equals("@iste.uni-stuttgart.de")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Invalid university email");
+                "Email must be a valid university address ending with @iste.uni-stuttgart.de");
         }
     }
 }
